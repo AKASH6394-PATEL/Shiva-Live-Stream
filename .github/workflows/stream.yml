@@ -46,4 +46,4 @@ jobs:
           V="ganga_aarti_video.mp4" ; A="night_audio.mp3"
         fi
 
-        ffmpeg -re -stream_loop -1 -i "$V" -i "$A" -map 0:v:0 -map 1:a:0 -c:v libx264 -preset superfast -b:v 1500k -maxrate 1500k -bufsize 3000k -pix_fmt yuv420p -g 60 -c:a aac -b:a 128k -ar 44100 -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}"
+        ffmpeg -re -stream_loop -1 -i "$V" -i "$A" -map 0:v:0 -map 1:a:0 -vf "scale=2560:1440:force_original_aspect_ratio=decrease,pad=2560:1440:(ow-iw)/2:(oh-ih)/2,format=yuv420p" -c:v libx264 -preset superfast -b:v 2500k -maxrate 2500k -bufsize 5000k -thread_queue_size 512 -g 60 -c:a aac -b:a 128k -ar 44100 -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}"
