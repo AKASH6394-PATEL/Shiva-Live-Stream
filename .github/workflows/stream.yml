@@ -30,15 +30,20 @@ jobs:
         echo "Current IST Hour: $H"
 
         if [ $H -ge 3 ] && [ $H -lt 9 ]; then
+          echo "Loop 1: Morning"
           V="morning_video.mp4" ; A="morning_audio.mp3"
         elif [ $H -ge 9 ] && [ $H -lt 14 ]; then
+          echo "Loop 2: Mid-Day"
           V="morning_video.mp4" ; A="afternoon_audio.mp3"
         elif [ $H -ge 14 ] && [ $H -lt 18 ]; then
+          echo "Loop 3: Afternoon"
           V="morning_video.mp4" ; A="afternoon_audio.mp3"
         elif [ $H -ge 18 ] && [ $H -lt 21 ]; then
+          echo "Loop 4: Evening Aarti"
           V="ganga_aarti_video.mp4" ; A="evening_aarti_audio.mp3"
         else
+          echo "Loop 5: Night"
           V="ganga_aarti_video.mp4" ; A="night_audio.mp3"
         fi
 
-        ffmpeg -re -stream_loop -1 -i "$V" -i "$A" -map 0:v:0 -map 1:a:0 -c:v libx264 -preset veryfast -b:v 2500k -maxrate 2500k -bufsize 5000k -pix_fmt yuv420p -g 60 -c:a aac -b:a 128k -ar 44100 -shortest -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}"
+        ffmpeg -re -stream_loop -1 -i "$V" -i "$A" -map 0:v:0 -map 1:a:0 -c:v libx264 -preset superfast -b:v 2000k -maxrate 2000k -bufsize 4000k -pix_fmt yuv420p -g 50 -c:a aac -b:a 128k -ar 44100 -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}"
