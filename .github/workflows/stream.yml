@@ -5,7 +5,7 @@ on:
     branches: [ main ]
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *' # Har 6 ghante mein restart taaki session fresh rahe
+    - cron: '0 */6 * * *' 
 
 jobs:
   stream:
@@ -17,7 +17,6 @@ jobs:
     - name: Setup System and Files
       run: |
         sudo apt-get update && sudo apt-get install -y ffmpeg wget
-        # Saari files download ho rahi hain
         wget https://github.com/${{ github.repository }}/releases/download/v1/morning_video.mp4
         wget https://github.com/${{ github.repository }}/releases/download/v1/ganga_aarti_video.mp4
         wget https://github.com/${{ github.repository }}/releases/download/v1/morning_audio.mp3
@@ -27,24 +26,18 @@ jobs:
 
     - name: Run Intelligent Stream
       run: |
-        # IST Time (UTC + 5:30) nikalne ka logic
         H=$(date -u -d "+5 hours 30 minutes" +%H)
         echo "Current IST Hour: $H"
 
         if [ $H -ge 3 ] && [ $H -lt 9 ]; then
-          echo "Loop 1: Morning (3 AM - 9 AM)"
           V="morning_video.mp4" ; A="morning_audio.mp3"
         elif [ $H -ge 9 ] && [ $H -lt 14 ]; then
-          echo "Loop 2: Mid-Day (9 AM - 2 PM)"
           V="morning_video.mp4" ; A="afternoon_audio.mp3"
         elif [ $H -ge 14 ] && [ $H -lt 18 ]; then
-          echo "Loop 3: Afternoon (2 PM - 6 PM)"
           V="morning_video.mp4" ; A="afternoon_audio.mp3"
         elif [ $H -ge 18 ] && [ $H -lt 21 ]; then
-          echo "Loop 4: Evening Aarti (6 PM - 9 PM)"
           V="ganga_aarti_video.mp4" ; A="evening_aarti_audio.mp3"
         else
-          echo "Loop 5: Night (9 PM - 3 AM)"
           V="ganga_aarti_video.mp4" ; A="night_audio.mp3"
         fi
 
