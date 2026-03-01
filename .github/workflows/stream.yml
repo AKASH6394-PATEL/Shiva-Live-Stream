@@ -1,0 +1,23 @@
+name: 24/7 Kashi Live Stream
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  stream:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Download Files from Release
+      run: |
+        sudo apt-get update && sudo apt-get install -y ffmpeg wget
+        wget https://github.com/${{ github.repository }}/releases/download/v1/background.mp4.mp4
+        wget https://github.com/${{ github.repository }}/releases/download/v1/morning_audio.mp3.mp4
+
+    - name: Start Streaming
+      run: |
+        ffmpeg -re -stream_loop -1 -i background.mp4.mp4 -i morning_audio.mp3.mp4 -map 0:v:0 -map 1:a:0 -c:v libx264 -preset veryfast -b:v 2500k -maxrate 2500k -bufsize 5000k -pix_fmt yuv420p -g 60 -c:a aac -b:a 128k -ar 44100 -shortest -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}"
