@@ -28,7 +28,9 @@ steps:
     wget -q -O evening_aarti_audio.mp3 https://github.com/${{ github.repository }}/releases/download/v1/evening_aarti_audio.mp3
     wget -q -O night.audio.mp3 https://github.com/${{ github.repository }}/releases/download/v1/night_audio.mp3
 
-- name: Select Time Slot
+    echo "Audio download completed."
+
+- name: Determine Time Slot (IST)
   run: |
     H=$(date -u -d "+5 hours 30 minutes" +%H)
     echo "Current IST Hour: $H"
@@ -61,7 +63,13 @@ steps:
     echo "Audio: $AUDIO"
 
     if [ ! -f "$VIDEO" ]; then
-      echo "ERROR: Video file not found!"
+      echo "ERROR: Video file $VIDEO not found!"
+      ls -lh
+      exit 1
+    fi
+
+    if [ ! -f "$AUDIO" ]; then
+      echo "ERROR: Audio file $AUDIO not found!"
       ls -lh
       exit 1
     fi
@@ -69,6 +77,7 @@ steps:
 - name: Start YouTube Stream
   run: |
     echo "Starting YouTube Stream..."
+    echo "Message: $MSG"
 
     ffmpeg -re -stream_loop -1 -i "$VIDEO" -stream_loop -1 -i "$AUDIO" \
     -map 0:v:0 -map 1:a:0 \
