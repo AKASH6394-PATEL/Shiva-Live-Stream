@@ -14,88 +14,68 @@ steps:
   - name: Checkout Repository
     uses: actions/checkout@v3
 
-  - name: Install Dependencies
+  - name: Install FFmpeg
     run: |
-      echo "Installing FFmpeg and Wget..."
       sudo apt-get update
       sudo apt-get install -y ffmpeg wget
 
   - name: Download Audio Files
     run: |
-      echo "Downloading audio files from GitHub Releases..."
+      echo "Downloading audio files..."
 
       wget -q -O morning_audio.mp3 https://github.com/${{ github.repository }}/releases/download/v1/morning_audio.mp3
       wget -q -O afternoon_audio.mp3 https://github.com/${{ github.repository }}/releases/download/v1/afternoon_audio.mp3
       wget -q -O evening_aarti_audio.mp3 https://github.com/${{ github.repository }}/releases/download/v1/evening_aarti_audio.mp3
       wget -q -O night_audio.mp3 https://github.com/${{ github.repository }}/releases/download/v1/night_audio.mp3
 
-      echo "Audio download completed."
-
-  - name: Verify Audio Files
-    run: |
-      echo "Verifying audio files..."
-
-      if [ ! -f morning_audio.mp3 ]; then echo "Missing morning_audio.mp3"; exit 1; fi
-      if [ ! -f afternoon_audio.mp3 ]; then echo "Missing afternoon_audio.mp3"; exit 1; fi
-      if [ ! -f evening_aarti_audio.mp3 ]; then echo "Missing evening_aarti_audio.mp3"; exit 1; fi
-      if [ ! -f night_audio.mp3 ]; then echo "Missing night_audio.mp3"; exit 1; fi
-
-      echo "All audio files verified."
-
-  - name: Determine Time Slot (IST)
+  - name: Select Time Slot
     run: |
       H=$(date -u -d "+5 hours 30 minutes" +%H)
       echo "Current IST Hour: $H"
 
       if [ $H -ge 05 ] && [ $H -lt 12 ]; then
-        echo "VIDEO=morning.video.mp4" >> $GITHUB_ENV
+        echo "VIDEO=morning_video.mp4" >> $GITHUB_ENV
         echo "AUDIO=morning_audio.mp3" >> $GITHUB_ENV
-        echo "MSG=Shubh Prabhat | Morning Bliss" >> $GITHUB_ENV
 
       elif [ $H -ge 12 ] && [ $H -lt 17 ]; then
-        echo "VIDEO=morning.video.mp4" >> $GITHUB_ENV
+        echo "VIDEO=morning_video.mp4" >> $GITHUB_ENV
         echo "AUDIO=afternoon_audio.mp3" >> $GITHUB_ENV
-        echo "MSG=Shubh Dopahar | Afternoon Peace" >> $GITHUB_ENV
 
       elif [ $H -ge 17 ] && [ $H -lt 20 ]; then
         echo "VIDEO=ganga_aarti_video.mp4" >> $GITHUB_ENV
         echo "AUDIO=evening_aarti_audio.mp3" >> $GITHUB_ENV
-        echo "MSG=Ganga Aarti | Evening Grace" >> $GITHUB_ENV
 
       else
         echo "VIDEO=ganga_aarti_video.mp4" >> $GITHUB_ENV
         echo "AUDIO=night_audio.mp3" >> $GITHUB_ENV
-        echo "MSG=Shubh Ratri | Divine Night" >> $GITHUB_ENV
       fi
 
-  - name: Verify Video File
+  - name: Check Files
     run: |
-      echo "Checking video file..."
+      echo "Video: $VIDEO"
+      echo "Audio: $AUDIO"
 
       if [ ! -f "$VIDEO" ]; then
-        echo "ERROR: Video file $VIDEO not found!"
+        echo "ERROR: Video file not found!"
         ls -lh
         exit 1
       fi
 
-      echo "Video file verified."
+      if [ ! -f "$AUDIO" ]; then
+        echo "ERROR: Audio file not found!"
+        exit 1
+      fi
 
-  - name: Start YouTube Stream
+  - name: Start Stream
     run: |
       echo "Starting YouTube Stream..."
-      echo "Stream Mode: $MSG"
-      echo "Video: $VIDEO"
-      echo "Audio: $AUDIO"
 
-      ffmpeg -re \
-      -stream_loop -1 -i "$VIDEO" \
-      -stream_loop -1 -i "$AUDIO" \
+      ffmpeg -re -stream_loop -1 -i "$VIDEO" -stream_loop -1 -i "$AUDIO" \
       -map 0:v:0 -map 1:a:0 \
       -c:v libx264 -preset veryfast \
       -b:v 2500k -maxrate 2500k -bufsize 5000k \
       -pix_fmt yuv420p -g 60 \
       -c:a aac -b:a 128k -ar 44100 \
-      -flvflags no_duration_filesize \
       -t 21500 \
       -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}"
 ```
