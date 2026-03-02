@@ -1,4 +1,4 @@
-name: 24/7 Kashi thumnail Photo Stream
+name: 24/7 Kashi Photo Stream
 
 on:
   push:
@@ -18,17 +18,17 @@ jobs:
       run: |
         sudo apt-get update && sudo apt-get install -y ffmpeg wget
 
-    - name: Download Audio Assets
+    - name: Prepare Audio
       run: |
-        # Thumbnail agar repo mein hai toh wget ki zaroorat nahi, sirf releases wali audio download karein
-        wget -O morning.mp3 https://github.com/${{ github.repository }}/releases/download/v1/morning_audio.mp3 || echo "File not found"
-        wget -O afternoon.mp3 https://github.com/${{ github.repository }}/releases/download/v1/afternoon_audio.mp3 || echo "File not found"
-        wget -O evening.mp3 https://github.com/${{ github.repository }}/releases/download/v1/evening_aarti_audio.mp3 || echo "File not found"
-        wget -O night.mp3 https://github.com/${{ github.repository }}/releases/download/v1/night_audio.mp3 || echo "File not found"
+        # Audio files download kar rahe hain (Check karein ki ye links kaam kar rahe hain)
+        wget -O morning.mp3 https://github.com/${{ github.repository }}/releases/download/v1/morning_audio.mp3 || echo "Morning audio missing"
+        wget -O afternoon.mp3 https://github.com/${{ github.repository }}/releases/download/v1/afternoon_audio.mp3 || echo "Afternoon audio missing"
+        wget -O evening.mp3 https://github.com/${{ github.repository }}/releases/download/v1/evening_aarti_audio.mp3 || echo "Evening audio missing"
+        wget -O night.mp3 https://github.com/${{ github.repository }}/releases/download/v1/night_audio.mp3 || echo "Night audio missing"
 
     - name: Run Photo Stream
       run: |
-        # IST Time Calculate
+        # Timezone Calculation (IST)
         H=$(date -u -d "+5 hours 30 minutes" +%H)
         echo "Current IST Hour: $H"
 
@@ -42,10 +42,13 @@ jobs:
           A="night.mp3"
         fi
 
-        # FFmpeg Command improvements:
-        # 1. -stream_loop -1 (Audio ko baar-baar repeat karne ke liye)
-        # 2. -t 21500 (Stream ko 5 ghante 58 min par band karne ke liye taaki agla cron start ho sake)
-        
+        # Check if thumbnail exists
+        if [ ! -f "thumbnail.jpg" ]; then
+          echo "ERROR: thumbnail.jpg not found in repository root!"
+          exit 1
+        fi
+
+        # Stream Command with Auto-Loop and 6-hour limit
         ffmpeg -re -loop 1 -i thumbnail.jpg -stream_loop -1 -i "$A" \
         -c:v libx264 -preset superfast -tune stillimage -b:v 1500k \
         -maxrate 1500k -bufsize 3000k -pix_fmt yuv420p -g 60 \
