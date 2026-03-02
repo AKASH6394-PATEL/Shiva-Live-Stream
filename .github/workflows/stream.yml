@@ -1,4 +1,4 @@
-name: 24/7 Kashi Photo Stream
+name: 24/7 Kashi thumnail Photo Stream
 
 on:
   push:
@@ -14,30 +14,40 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v3
 
-    - name: Setup System and Files
+    - name: Setup System
       run: |
         sudo apt-get update && sudo apt-get install -y ffmpeg wget
-        # Yahan apni thumbnail image aur audio files download kar rahe hain
-        wget https://github.com/${{ github.repository }}/raw/main/thumbnail.jpg
-        wget https://github.com/${{ github.repository }}/releases/download/v1/morning_audio.mp3
-        wget https://github.com/${{ github.repository }}/releases/download/v1/afternoon_audio.mp3
-        wget https://github.com/${{ github.repository }}/releases/download/v1/evening_aarti_audio.mp3
-        wget https://github.com/${{ github.repository }}/releases/download/v1/night_audio.mp3
+
+    - name: Download Audio Assets
+      run: |
+        # Thumbnail agar repo mein hai toh wget ki zaroorat nahi, sirf releases wali audio download karein
+        wget -O morning.mp3 https://github.com/${{ github.repository }}/releases/download/v1/morning_audio.mp3 || echo "File not found"
+        wget -O afternoon.mp3 https://github.com/${{ github.repository }}/releases/download/v1/afternoon_audio.mp3 || echo "File not found"
+        wget -O evening.mp3 https://github.com/${{ github.repository }}/releases/download/v1/evening_aarti_audio.mp3 || echo "File not found"
+        wget -O night.mp3 https://github.com/${{ github.repository }}/releases/download/v1/night_audio.mp3 || echo "File not found"
 
     - name: Run Photo Stream
       run: |
+        # IST Time Calculate
         H=$(date -u -d "+5 hours 30 minutes" +%H)
         echo "Current IST Hour: $H"
 
-        if [ $H -ge 3 ] && [ $H -lt 10 ]; then
-          A="morning_audio.mp3"
+        if [ $H -ge 03 ] && [ $H -lt 10 ]; then
+          A="morning.mp3"
         elif [ $H -ge 10 ] && [ $H -lt 18 ]; then
-          A="afternoon_audio.mp3"
+          A="afternoon.mp3"
         elif [ $H -ge 18 ] && [ $H -lt 21 ]; then
-          A="evening_aarti_audio.mp3"
+          A="evening.mp3"
         else
-          A="night_audio.mp3"
+          A="night.mp3"
         fi
 
-        # Sirf Photo aur Audio ko mix karne ki stable command
-        ffmpeg -re -loop 1 -i thumbnail.jpg -i "$A" -c:v libx264 -preset superfast -tune stillimage -b:v 1000k -maxrate 1000k -bufsize 2000k -pix_fmt yuv420p -g 60 -c:a aac -b:a 128k -ar 44100 -shortest -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}"
+        # FFmpeg Command improvements:
+        # 1. -stream_loop -1 (Audio ko baar-baar repeat karne ke liye)
+        # 2. -t 21500 (Stream ko 5 ghante 58 min par band karne ke liye taaki agla cron start ho sake)
+        
+        ffmpeg -re -loop 1 -i thumbnail.jpg -stream_loop -1 -i "$A" \
+        -c:v libx264 -preset superfast -tune stillimage -b:v 1500k \
+        -maxrate 1500k -bufsize 3000k -pix_fmt yuv420p -g 60 \
+        -c:a aac -b:a 128k -ar 44100 \
+        -t 21500 -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}"
