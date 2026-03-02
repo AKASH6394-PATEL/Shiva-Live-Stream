@@ -1,85 +1,79 @@
 name: 24/7 Kashi Video Stream
 
 on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
-  schedule:
-    - cron: '0 */6 * * *'
+workflow_dispatch:
+schedule:
+- cron: '0 */6 * * *'
 
 jobs:
-  stream:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+stream:
+runs-on: ubuntu-latest
 
-      - name: Install Dependencies
-        run: |
-          echo "Installing FFmpeg and Wget..."
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg wget
+```
+steps:
+- name: Checkout Repository
+  uses: actions/checkout@v3
 
-      - name: Download Video & Audio Assets
-        run: |
-          echo "Downloading video and audio files..."
-          wget -q -O morning.mp4 https://github.com/${{ github.repository }}/releases/download/v1/morning.mp4 || echo "Warning: morning.mp4 not found"
-          wget -q -O ganga_aarti.mp4 https://github.com/${{ github.repository }}/releases/download/v1/ganga_aarti.mp4 || echo "Warning: ganga_aarti.mp4 not found"
-          wget -q -O morning.mp3 https://github.com/${{ github.repository }}/releases/download/v1/morning_audio.mp3 || echo "Warning: morning_audio.mp3 not found"
-          wget -q -O afternoon.mp3 https://github.com/${{ github.repository }}/releases/download/v1/afternoon_audio.mp3 || echo "Warning: afternoon_audio.mp3 not found"
-          wget -q -O evening.mp3 https://github.com/${{ github.repository }}/releases/download/v1/evening_aarti_audio.mp3 || echo "Warning: evening_aarti_audio.mp3 not found"
-          wget -q -O night.mp3 https://github.com/${{ github.repository }}/releases/download/v1/night_audio.mp3 || echo "Warning: night_audio.mp3 not found"
-          echo "Download completed."
-          ls -lh *.mp4 *.mp3 2>/dev/null || echo "Some files may be missing"
+- name: Install FFmpeg
+  run: |
+    sudo apt-get update
+    sudo apt-get install -y ffmpeg wget
 
-      - name: Determine Time Slot (IST)
-        run: |
-          H=$(date -u -d "+5 hours 30 minutes" +%H)
-          echo "Current IST Hour: $H"
-          if [ $H -ge 05 ] && [ $H -lt 12 ]; then
-            echo "VIDEO=morning.mp4" >> $GITHUB_ENV
-            echo "AUDIO=morning.mp3" >> $GITHUB_ENV
-            echo "MSG=Shubh Prabhat | Morning Bliss" >> $GITHUB_ENV
-          elif [ $H -ge 12 ] && [ $H -lt 17 ]; then
-            echo "VIDEO=morning.mp4" >> $GITHUB_ENV
-            echo "AUDIO=afternoon.mp3" >> $GITHUB_ENV
-            echo "MSG=Shubh Dopahar | Afternoon Peace" >> $GITHUB_ENV
-          elif [ $H -ge 17 ] && [ $H -lt 20 ]; then
-            echo "VIDEO=ganga_aarti.mp4" >> $GITHUB_ENV
-            echo "AUDIO=evening.mp3" >> $GITHUB_ENV
-            echo "MSG=Ganga Aarti | Evening Grace" >> $GITHUB_ENV
-          else
-            echo "VIDEO=ganga_aarti.mp4" >> $GITHUB_ENV
-            echo "AUDIO=night.mp3" >> $GITHUB_ENV
-            echo "MSG=Shubh Ratri | Divine Night" >> $GITHUB_ENV
-          fi
+- name: Download Audio Files
+  run: |
+    echo "Downloading audio files..."
 
-      - name: Check Video File
-        run: |
-          echo "Selected Stream: $MSG"
-          echo "Using Video: $VIDEO"
-          echo "Using Audio: $AUDIO"
-          if [ ! -f "$VIDEO" ]; then
-            echo "ERROR: Video file '$VIDEO' not found!"
-            echo "Available files:"
-            ls -lh *.mp4 *.mp3 2>/dev/null || echo "No media files found"
-            exit 1
-          fi
-          if [ ! -f "$AUDIO" ]; then
-            echo "ERROR: Audio file '$AUDIO' not found!"
-            exit 1
-          fi
+    wget -q -O morning_audio.mp3 https://github.com/${{ github.repository }}/releases/download/v1/morning_audio.mp3
+    wget -q -O afternoon_audio.mp3 https://github.com/${{ github.repository }}/releases/download/v1/afternoon_audio.mp3
+    wget -q -O evening_aarti_audio.mp3 https://github.com/${{ github.repository }}/releases/download/v1/evening_aarti_audio.mp3
+    wget -q -O night.audio.mp3 https://github.com/${{ github.repository }}/releases/download/v1/night_audio.mp3
 
-      - name: Start YouTube Live Stream
-        run: |
-          echo "Starting YouTube Stream..."
-          echo "Stream Details:"
-          echo "Message: $MSG"
-          echo "Video: $VIDEO"
-          echo "Audio: $AUDIO"
-          ffmpeg -re -stream_loop -1 -i "$VIDEO" -stream_loop -1 -i "$AUDIO" \
-          -map 0:v:0 -map 1:a:0 \
-          -c:v libx264 -preset veryfast -b:v 2500k -maxrate 2500k -bufsize 5000k \
-          -pix_fmt yuv420p -g 60 \
-          -c:a aac -b:a 128k -ar 44100 \
-          -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}"
+- name: Select Time Slot
+  run: |
+    H=$(date -u -d "+5 hours 30 minutes" +%H)
+    echo "Current IST Hour: $H"
+
+    if [ $H -ge 05 ] && [ $H -lt 12 ]; then
+      echo "VIDEO=morning.video.mp4" >> $GITHUB_ENV
+      echo "AUDIO=morning_audio.mp3" >> $GITHUB_ENV
+      echo "MSG=Shubh Prabhat | Morning Bliss" >> $GITHUB_ENV
+
+    elif [ $H -ge 12 ] && [ $H -lt 17 ]; then
+      echo "VIDEO=morning.video.mp4" >> $GITHUB_ENV
+      echo "AUDIO=afternoon_audio.mp3" >> $GITHUB_ENV
+      echo "MSG=Shubh Dopahar | Afternoon Peace" >> $GITHUB_ENV
+
+    elif [ $H -ge 17 ] && [ $H -lt 20 ]; then
+      echo "VIDEO=ganga_aarti_video.mp4" >> $GITHUB_ENV
+      echo "AUDIO=evening_aarti_audio.mp3" >> $GITHUB_ENV
+      echo "MSG=Ganga Aarti | Evening Grace" >> $GITHUB_ENV
+
+    else
+      echo "VIDEO=ganga_aarti_video.mp4" >> $GITHUB_ENV
+      echo "AUDIO=night.audio.mp3" >> $GITHUB_ENV
+      echo "MSG=Shubh Ratri | Divine Night" >> $GITHUB_ENV
+    fi
+
+- name: Check Files
+  run: |
+    echo "Selected Stream:"
+    echo "Video: $VIDEO"
+    echo "Audio: $AUDIO"
+
+    if [ ! -f "$VIDEO" ]; then
+      echo "ERROR: Video file not found!"
+      ls -lh
+      exit 1
+    fi
+
+- name: Start YouTube Stream
+  run: |
+    echo "Starting YouTube Stream..."
+
+    ffmpeg -re -stream_loop -1 -i "$VIDEO" -stream_loop -1 -i "$AUDIO" \
+    -map 0:v:0 -map 1:a:0 \
+    -c:v libx264 -preset veryfast -b:v 2500k -maxrate 2500k -bufsize 5000k \
+    -pix_fmt yuv420p -g 60 \
+    -c:a aac -b:a 128k -ar 44100 \
+    -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}"
+```
