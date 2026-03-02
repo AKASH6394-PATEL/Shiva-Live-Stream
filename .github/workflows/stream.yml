@@ -1,4 +1,4 @@
-name: 24/7 Kashi Smart Stream
+name: 24/7 Kashi Photo Stream
 
 on:
   push:
@@ -17,33 +17,27 @@ jobs:
     - name: Setup System and Files
       run: |
         sudo apt-get update && sudo apt-get install -y ffmpeg wget
-        wget https://github.com/${{ github.repository }}/releases/download/v1/morning_video.mp4
-        wget https://github.com/${{ github.repository }}/releases/download/v1/ganga_aarti_video.mp4
+        # Yahan apni thumbnail image aur audio files download kar rahe hain
+        wget https://github.com/${{ github.repository }}/raw/main/thumbnail.jpg
         wget https://github.com/${{ github.repository }}/releases/download/v1/morning_audio.mp3
         wget https://github.com/${{ github.repository }}/releases/download/v1/afternoon_audio.mp3
         wget https://github.com/${{ github.repository }}/releases/download/v1/evening_aarti_audio.mp3
         wget https://github.com/${{ github.repository }}/releases/download/v1/night_audio.mp3
 
-    - name: Run Intelligent Stream
+    - name: Run Photo Stream
       run: |
         H=$(date -u -d "+5 hours 30 minutes" +%H)
         echo "Current IST Hour: $H"
 
-        if [ $H -ge 3 ] && [ $H -lt 9 ]; then
-          echo "Loop 1: Morning"
-          V="morning_video.mp4" ; A="morning_audio.mp3"
-        elif [ $H -ge 9 ] && [ $H -lt 14 ]; then
-          echo "Loop 2: Mid-Day"
-          V="morning_video.mp4" ; A="afternoon_audio.mp3"
-        elif [ $H -ge 14 ] && [ $H -lt 18 ]; then
-          echo "Loop 3: Afternoon"
-          V="morning_video.mp4" ; A="afternoon_audio.mp3"
+        if [ $H -ge 3 ] && [ $H -lt 10 ]; then
+          A="morning_audio.mp3"
+        elif [ $H -ge 10 ] && [ $H -lt 18 ]; then
+          A="afternoon_audio.mp3"
         elif [ $H -ge 18 ] && [ $H -lt 21 ]; then
-          echo "Loop 4: Evening Aarti"
-          V="ganga_aarti_video.mp4" ; A="evening_aarti_audio.mp3"
+          A="evening_aarti_audio.mp3"
         else
-          echo "Loop 5: Night"
-          V="ganga_aarti_video.mp4" ; A="night_audio.mp3"
+          A="night_audio.mp3"
         fi
 
-        ffmpeg -re -stream_loop -1 -i "$V" -i "$A" -map 0:v:0 -map 1:a:0 -vf "scale=2560:1440:force_original_aspect_ratio=decrease,pad=2560:1440:(ow-iw)/2:(oh-ih)/2,format=yuv420p" -c:v libx264 -preset superfast -b:v 2500k -maxrate 2500k -bufsize 5000k -thread_queue_size 512 -g 60 -c:a aac -b:a 128k -ar 44100 -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}"
+        # Sirf Photo aur Audio ko mix karne ki stable command
+        ffmpeg -re -loop 1 -i thumbnail.jpg -i "$A" -c:v libx264 -preset superfast -tune stillimage -b:v 1000k -maxrate 1000k -bufsize 2000k -pix_fmt yuv420p -g 60 -c:a aac -b:a 128k -ar 44100 -shortest -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}"
