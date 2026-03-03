@@ -1,4 +1,4 @@
-name: YouTube 24/7 Stream
+name: Live Stream
 
 on:
   workflow_dispatch:
@@ -25,7 +25,10 @@ jobs:
       - name: Start Live Stream
         run: |
           ffmpeg -re -stream_loop -1 -i video.mp4 -stream_loop -1 -i audio.mp3 \
-          -c:v libx264 -preset veryfast -b:v 1000k \
-          -c:a aac -b:a 128k \
+          -map 0:v -map 1:a \
+          -c:v libx264 -preset veryfast -b:v 900k \
+          -maxrate 1000k -bufsize 2000k \
+          -pix_fmt yuv420p -g 50 -r 25 \
+          -c:a aac -b:a 128k -ar 44100 \
           -vf scale=854:480 \
-          -f flv rtmp://a.rtmp.youtube.com/live2/PASTE_YOUR_STREAM_KEY_HERE 9huv-paeh-m82s-kt24-d2y0
+          -f flv rtmp://a.rtmp.youtube.com/live2/9huv-paeh-m82s-kt24-d2y0
