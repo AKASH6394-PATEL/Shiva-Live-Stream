@@ -8,27 +8,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Install FFmpeg
-      run: |
-        sudo apt update
-        sudo apt install ffmpeg -y
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
 
-    - name: Download Video
-      run: |
-        wget -O video.mp4 https://github.com/AKASH6394-PATEL/Shiva-Live-Stream/releases/download/v1/shiv-loop-video.mp4
+      - name: Download Video
+        run: |
+          wget -O video.mp4 https://github.com/AKASH6394-PATEL/Shiva-Live-Stream/releases/download/v1/shiv-loop-video.mp4
 
-    - name: Download Audio
-      run: |
-        wget -O audio.mp3 https://github.com/AKASH6394-PATEL/Shiva-Live-Stream/releases/download/v1/shiv-mantra-master-47min.mp3
+      - name: Download Audio
+        run: |
+          wget -O audio.mp3 https://github.com/AKASH6394-PATEL/Shiva-Live-Stream/releases/download/v1/shiv-mantra-master-47min.mp3
 
-    - name: Start Live Stream
-      run: |
-        ffmpeg -re -stream_loop -1 -i video.mp4 -stream_loop -1 -i audio.mp3 \
-        -map 0:v:0 -map 1:a:0 \
-        -c:v libx264 -preset veryfast -b:v 900k \
-        -maxrate 1000k -bufsize 2000k \
-        -pix_fmt yuv420p -g 50 -r 25 \
-        -c:a aac -b:a 128k -ar 44100 \
-        -vf scale=854:480 \
-        -f flv rtmp://a.rtmp.youtube.com/live2/${{ secrets.STREAM_KEY }}
+      - name: Start Live Stream
+        run: |
+          ffmpeg -re -stream_loop -1 -i video.mp4 -stream_loop -1 -i audio.mp3 \
+          -map 0:v -map 1:a \
+          -c:v libx264 -preset veryfast -b:v 900k \
+          -maxrate 1000k -bufsize 2000k \
+          -pix_fmt yuv420p -g 50 -r 25 \
+          -c:a aac -b:a 128k -ar 44100 \
+          -vf scale=854:480 \
+          -f flv rtmp://a.rtmp.youtube.com/live2/${{ secrets.STREAM_KEY }}
