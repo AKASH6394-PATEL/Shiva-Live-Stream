@@ -1,1 +1,33 @@
+name: Live Stream
 
+on:
+  workflow_dispatch:
+
+jobs:
+  stream:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt update
+          sudo apt install ffmpeg -y
+
+      - name: Download Video
+        run: |
+          wget -O video.mp4 https://github.com/AKASH6394-PATEL/Shiva-Live-Stream/releases/download/v1/shiv-loop-video.mp4
+
+      - name: Download Audio
+        run: |
+          wget -O audio.mp3 https://github.com/AKASH6394-PATEL/Shiva-Live-Stream/releases/download/v1/shiv-mantra-master-47min.mp3
+
+      - name: Start Live Stream
+        run: |
+          ffmpeg -re -stream_loop -1 \
+          -i video.mp4 \
+          -i audio.mp3 \
+          -map 0:v:0 -map 1:a:0 \
+          -c:v libx264 -preset veryfast -maxrate 3000k -bufsize 6000k \
+          -pix_fmt yuv420p -g 50 \
+          -c:a aac -b:a 128k \
+          -f flv rtmp://a.rtmp.youtube.com/live2/YOUR_STREAM_KEY
